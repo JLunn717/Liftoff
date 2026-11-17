@@ -8,7 +8,7 @@ export const TRACKED_STATES = ["FL", "CA", "VA", "TX"] as const
 
 export type TrackedState = (typeof TRACKED_STATES)[number]
 
-export const STATE_NAMES: Record<TrackedState, string> = {
+export const STATE_NAMES: Record<string, string> = {
   FL: "Florida",
   CA: "California",
   VA: "Virginia",
