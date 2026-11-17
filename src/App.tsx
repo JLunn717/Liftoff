@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Activity, AlertTriangle, CalendarDays, ChevronRight, Clock3, ExternalLink, MapPin, Radio, RefreshCw, Rocket, Satellite, Signal, Wifi } from 'lucide-react'
 import { getUSLaunches } from './api'
 import type { Launch } from './types'
-import { DEFAULT_STATE, STATE_NAMES, TRACKED_STATES, stateCodeFromLocation } from '../packages/core/src/coverage'
+import { DEFAULT_STATE, TRACKED_STATES, stateCodeFromLocation } from '../packages/core/src/coverage'
 
 function useNow() {
   const [now, setNow] = useState(Date.now())
