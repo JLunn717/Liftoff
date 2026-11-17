@@ -1,8 +1,8 @@
 import type { Launch } from './types'
+import { TRACKED_STATES, stateCodeFromLocation } from '../packages/core/src/coverage'
 
 const LAUNCHES_URL = 'https://lldev.thespacedevs.com/2.3.0/launches/upcoming/?format=json&limit=100&mode=detailed'
 const CACHE_KEY = 'liftoff.us-launches.v6'
-const TRACKED_STATES = ['FL', 'CA', 'VA', 'TX']
 const CACHE_TTL = 30 * 60 * 1000
 const MIN_REFRESH_INTERVAL = 4 * 60 * 1000
 
@@ -29,9 +29,8 @@ export async function getUSLaunches(force = false): Promise<{ launches: Launch[]
   const results = Array.isArray(payload) ? payload : payload.results
   if (!Array.isArray(results)) throw new Error('The launch data service returned an unexpected response.')
 
-  const stateCodeForLocation = (name = '') => name.match(/,\s*([A-Z]{2}),\s*USA\s*$/i)?.[1]?.toUpperCase() ?? ''
   const launches = results
-    .filter(launch => TRACKED_STATES.includes(stateCodeForLocation(launch.pad?.location?.name ?? '')))
+    .filter(launch => TRACKED_STATES.some(code => code === stateCodeFromLocation(launch.pad?.location?.name ?? '')))
     .sort((a, b) =>
       new Date(a.net ?? a.window_start ?? '2999-01-01').getTime() - new Date(b.net ?? b.window_start ?? '2999-01-01').getTime()
     )
