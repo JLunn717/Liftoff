@@ -21,15 +21,6 @@ export async function getUSLaunches(force = false): Promise<{ launches: Launch[]
     }
   } catch { /* Ignore invalid browser cache. */ }
 
-  if (!force) {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY)
-      if (raw) {
-        const cache = JSON.parse(raw) as CacheRecord
-        if (Date.now() - cache.savedAt < CACHE_TTL && Array.isArray(cache.launches)) return { launches: cache.launches, stateCodes: Array.isArray(cache.stateCodes) ? cache.stateCodes : [], cached: true }
-      }
-    } catch { /* Ignore invalid browser cache. */ }
-  }
 
   const locationsResponse = await fetch(LOCATIONS_URL, { headers: { Accept: 'application/json' } })
   if (!locationsResponse.ok) throw new Error(`Launch location service returned ${locationsResponse.status}.`)
