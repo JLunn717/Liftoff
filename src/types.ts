@@ -5,5 +5,5 @@ export type Launch = {
   launch_service_provider?: { name?: string }
   pad?: { name?: string; location?: { name?: string }; map_url?: string }
   mission?: { name?: string; description?: string; orbit?: { name?: string } }
-  webcast_live?: boolean; vid_urls?: Array<{ url?: string; title?: string }>; url?: string
+  webcast_live?: boolean; vid_urls?: Array<{ url?: string; title?: string }>; infoURLs?: Array<{ url?: string; title?: string; description?: string }>; url?: string
 }
