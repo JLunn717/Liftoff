@@ -29,7 +29,7 @@ export async function getUSLaunches(force = false): Promise<{ launches: Launch[]
   const results = Array.isArray(payload) ? payload : payload.results
   if (!Array.isArray(results)) throw new Error('The launch data service returned an unexpected response.')
 
-  const stateCodeForLocation = (name = '') => name.match(/,\\s*([A-Z]{2}),\\s*USA\\s*$/i)?.[1]?.toUpperCase() ?? ''
+  const stateCodeForLocation = (name = '') => name.match(/,\s*([A-Z]{2}),\s*USA\s*$/i)?.[1]?.toUpperCase() ?? ''
   const launches = results
     .filter(launch => TRACKED_STATES.includes(stateCodeForLocation(launch.pad?.location?.name ?? '')))
     .sort((a, b) =>
