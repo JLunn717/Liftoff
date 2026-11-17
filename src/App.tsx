@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Activity, AlertTriangle, CalendarDays, ChevronRight, Clock3, ExternalLink, MapPin, Radio, RefreshCw, Rocket, Satellite, Signal, Wifi } from 'lucide-react'
 import { getUSLaunches } from './api'
 import type { Launch } from './types'
+import { DEFAULT_STATE, STATE_NAMES, TRACKED_STATES, stateCodeFromLocation } from '../packages/core/src/coverage'
 
 function useNow() {
   const [now, setNow] = useState(Date.now())
@@ -21,9 +22,8 @@ function dateLabel(date: string | null) {
   const d = new Date(date)
   return Number.isFinite(d.getTime()) ? new Intl.DateTimeFormat('en-US', { weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short', timeZone:'America/New_York' }).format(d) : 'Launch time not announced'
 }
-const TRACKED_STATES = ['FL', 'CA', 'VA', 'TX']
 const STATE_NAMES: Record<string,string> = { AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California', CO:'Colorado', CT:'Connecticut', DE:'Delaware', FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois', IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana', ME:'Maine', MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota', MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada', NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York', NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma', OR:'Oregon', PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina', SD:'South Dakota', TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont', VA:'Virginia', WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming', DC:'District of Columbia' }
-function stateCode(launch: Launch) { const name = launch.pad?.location?.name ?? ''; const match = name.match(/,\s*([A-Z]{2}),\s*USA\s*$/i); return match?.[1]?.toUpperCase() ?? '' }
+function stateCode(launch: Launch) { return stateCodeFromLocation(launch.pad?.location?.name ?? '') ?? '' }
 function tone(status = '') {
   const s = status.toLowerCase()
   return s.includes('go') || s.includes('success') ? 'green' : s.includes('hold') || s.includes('tbd') || s.includes('tentative') ? 'amber' : s.includes('fail') || s.includes('scrub') ? 'red' : 'blue'
@@ -47,7 +47,7 @@ export default function App() {
   const [error,setError] = useState('')
   const [cached,setCached] = useState(false)
   const [selected,setSelected] = useState<Launch|null>(null)
-  const [stateFilter,setStateFilter] = useState('FL')
+  const [stateFilter,setStateFilter] = useState<string>(DEFAULT_STATE)
   const [visibleCount,setVisibleCount] = useState(5)
   const [lastUpdated,setLastUpdated] = useState<Date|null>(null)
   async function load(force = false) {
