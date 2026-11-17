@@ -1,7 +1,7 @@
 import type { Launch } from './types'
 
 const LAUNCHES_URL = 'https://lldev.thespacedevs.com/2.3.0/launches/upcoming/?format=json&limit=100&mode=detailed'
-const CACHE_KEY = 'liftoff.us-launches.v5'
+const CACHE_KEY = 'liftoff.us-launches.v6'
 const TRACKED_STATES = ['FL', 'CA', 'VA', 'TX']
 const CACHE_TTL = 30 * 60 * 1000
 const MIN_REFRESH_INTERVAL = 4 * 60 * 1000
