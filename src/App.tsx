@@ -21,6 +21,7 @@ function dateLabel(date: string | null) {
   const d = new Date(date)
   return Number.isFinite(d.getTime()) ? new Intl.DateTimeFormat('en-US', { weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short', timeZone:'America/New_York' }).format(d) : 'Launch time not announced'
 }
+const TRACKED_STATES = ['FL', 'CA', 'VA', 'TX']
 const STATE_NAMES: Record<string,string> = { AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California', CO:'Colorado', CT:'Connecticut', DE:'Delaware', FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois', IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana', ME:'Maine', MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota', MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada', NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York', NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma', OR:'Oregon', PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina', SD:'South Dakota', TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont', VA:'Virginia', WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming', DC:'District of Columbia' }
 function stateCode(launch: Launch) { const name = launch.pad?.location?.name ?? ''; const match = name.match(/,\s*([A-Z]{2}),\s*USA\s*$/i); return match?.[1]?.toUpperCase() ?? '' }
 function tone(status = '') {
@@ -56,7 +57,7 @@ export default function App() {
     finally { setLoading(false); setRefreshing(false) }
   }
   useEffect(() => { void load() }, [])
-  const states = useMemo(() => availableStates.filter(code => STATE_NAMES[code]).sort((a,b) => STATE_NAMES[a].localeCompare(STATE_NAMES[b])), [availableStates])
+  const states = useMemo(() => TRACKED_STATES.filter(code => availableStates.includes(code)), [availableStates])
   const filtered = useMemo(() => launches.filter(launch => stateFilter === 'ALL' || stateCode(launch) === stateFilter), [launches,stateFilter])
   useEffect(() => { setVisibleCount(5) }, [stateFilter])
   const visibleLaunches = filtered.slice(0, visibleCount)
