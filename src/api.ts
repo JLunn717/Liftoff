@@ -1,14 +1,26 @@
 import type { Launch } from './types'
 
-const LOCATIONS_URL = 'https://ll.thespacedevs.com/2.3.0/locations/?format=json&limit=100&country_code=USA'
+const LOCATIONS_URL = 'https://lldev.thespacedevs.com/2.3.0/locations/?format=json&limit=100&country_code=USA'
 const LAUNCHES_URL = 'https://ll.thespacedevs.com/2.3.0/launches/upcoming/?format=json&limit=100&mode=detailed'
-const CACHE_KEY = 'liftoff.us-launches.v2'
-const CACHE_TTL = 10 * 60 * 1000
+const CACHE_KEY = 'liftoff.us-launches.v3'
+const CACHE_TTL = 30 * 60 * 1000
+const MIN_REFRESH_INTERVAL = 4 * 60 * 1000
 
 type CacheRecord = { savedAt: number; launches: Launch[]; stateCodes: string[] }
 type ApiList<T> = { results?: T[] } | T[]
 
 export async function getUSLaunches(force = false): Promise<{ launches: Launch[]; stateCodes: string[]; cached: boolean }> {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (raw) {
+      const cache = JSON.parse(raw) as CacheRecord
+      const age = Date.now() - cache.savedAt
+      if (age < CACHE_TTL || (force && age < MIN_REFRESH_INTERVAL)) {
+        return { launches: cache.launches, stateCodes: Array.isArray(cache.stateCodes) ? cache.stateCodes : [], cached: true }
+      }
+    }
+  } catch { /* Ignore invalid browser cache. */ }
+
   if (!force) {
     try {
       const raw = localStorage.getItem(CACHE_KEY)
