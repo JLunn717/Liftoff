@@ -15,7 +15,7 @@ export async function getUSLaunches(force = false): Promise<{ launches: Launch[]
     if (raw) {
       const cache = JSON.parse(raw) as CacheRecord
       const age = Date.now() - cache.savedAt
-      if (age < CACHE_TTL || (force && age < MIN_REFRESH_INTERVAL)) {
+      if (Array.isArray(cache.launches) && (age < MIN_REFRESH_INTERVAL || (!force && age < CACHE_TTL))) {
         return { launches: cache.launches, stateCodes: Array.isArray(cache.stateCodes) ? cache.stateCodes : [], cached: true }
       }
     }
