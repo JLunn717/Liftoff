@@ -34,7 +34,7 @@ export async function getUSLaunches(force = false): Promise<{ launches: Launch[]
   if (!locations.length) throw new Error('No United States launch locations were returned.')
 
   const stateCodes = [...new Set(locations.map(location => {
-    const match = (location.name ?? '').match(/,\\s*([A-Z]{2}),\\s*USA\\s*$/i)
+    const match = (location.name ?? '').match(/,\s*([A-Z]{2}),\s*USA\s*$/i)
     return match?.[1]?.toUpperCase() ?? ''
   }).filter(code => /^[A-Z]{2}$/.test(code)))].sort()
   const ids = locations.map(location => location.id).filter(Number.isFinite)
