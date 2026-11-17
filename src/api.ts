@@ -16,7 +16,7 @@ export async function getUSLaunches(force = false): Promise<{ launches: Launch[]
       const cache = JSON.parse(raw) as CacheRecord
       const age = Date.now() - cache.savedAt
       if (Array.isArray(cache.launches) && (age < MIN_REFRESH_INTERVAL || (!force && age < CACHE_TTL))) {
-        return { launches: cache.launches, stateCodes: Array.isArray(cache.stateCodes) ? cache.stateCodes : TRACKED_STATES, cached: true }
+        return { launches: cache.launches, stateCodes: Array.isArray(cache.stateCodes) ? cache.stateCodes : [...TRACKED_STATES], cached: true }
       }
     }
   } catch { /* Ignore invalid browser cache. */ }
@@ -35,6 +35,6 @@ export async function getUSLaunches(force = false): Promise<{ launches: Launch[]
       new Date(a.net ?? a.window_start ?? '2999-01-01').getTime() - new Date(b.net ?? b.window_start ?? '2999-01-01').getTime()
     )
 
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), launches, stateCodes: TRACKED_STATES } satisfies CacheRecord)) } catch { /* Storage may be unavailable. */ }
-  return { launches, stateCodes: TRACKED_STATES, cached: false }
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), launches, stateCodes: [...TRACKED_STATES] } satisfies CacheRecord)) } catch { /* Storage may be unavailable. */ }
+  return { launches, stateCodes: [...TRACKED_STATES], cached: false }
 }
