@@ -22,7 +22,8 @@ function dateLabel(date: string | null) {
   return Number.isFinite(d.getTime()) ? new Intl.DateTimeFormat('en-US', { weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short', timeZone:'America/New_York' }).format(d) : 'Launch time not announced'
 }
 const STATE_NAMES: Record<string,string> = { AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California', CO:'Colorado', CT:'Connecticut', DE:'Delaware', FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois', IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana', ME:'Maine', MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota', MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada', NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York', NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma', OR:'Oregon', PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina', SD:'South Dakota', TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont', VA:'Virginia', WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming', DC:'District of Columbia' }
-function stateCode(launch: Launch) { const name = launch.pad?.location?.name ?? ''; const match = name.match(/,\\s*([A-Z]{2}),\\s*USA\\s*$/i); return match?.[1]?.toUpperCase() ?? '' }\nfunction tone(status = '') {
+function stateCode(launch: Launch) { const name = launch.pad?.location?.name ?? ''; const match = name.match(/,\s*([A-Z]{2}),\s*USA\s*$/i); return match?.[1]?.toUpperCase() ?? '' }
+function tone(status = '') {
   const s = status.toLowerCase()
   return s.includes('go') || s.includes('success') ? 'green' : s.includes('hold') || s.includes('tbd') || s.includes('tentative') ? 'amber' : s.includes('fail') || s.includes('scrub') ? 'red' : 'blue'
 }
