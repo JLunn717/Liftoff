@@ -2,7 +2,8 @@ import type { Launch } from './types'
 
 const LOCATIONS_URL = 'https://lldev.thespacedevs.com/2.3.0/locations/?format=json&limit=100&country_code=USA'
 const LAUNCHES_URL = 'https://ll.thespacedevs.com/2.3.0/launches/upcoming/?format=json&limit=100&mode=detailed'
-const CACHE_KEY = 'liftoff.us-launches.v3'
+const CACHE_KEY = 'liftoff.us-launches.v4'
+const TRACKED_STATES = ['FL', 'CA', 'VA', 'TX']
 const CACHE_TTL = 30 * 60 * 1000
 const MIN_REFRESH_INTERVAL = 4 * 60 * 1000
 
@@ -39,11 +40,10 @@ export async function getUSLaunches(force = false): Promise<{ launches: Launch[]
   }
   if (!locations.length) throw new Error('No United States launch locations were returned.')
 
-  const stateCodes = [...new Set(locations.map(location => {
-    const match = (location.name ?? '').match(/,\s*([A-Z]{2}),\s*USA\s*$/i)
-    return match?.[1]?.toUpperCase() ?? ''
-  }).filter(code => /^[A-Z]{2}$/.test(code)))].sort()
-  const ids = locations.map(location => location.id).filter(Number.isFinite)
+  const stateCodeForLocation = (name = '') => name.match(/,\s*([A-Z]{2}),\s*USA\s*$/i)?.[1]?.toUpperCase() ?? ''
+  const trackedLocations = locations.filter(location => TRACKED_STATES.includes(stateCodeForLocation(location.name)))
+  const stateCodes = TRACKED_STATES
+  const ids = trackedLocations.map(location => location.id).filter(Number.isFinite)
   const launchesUrl = `${LAUNCHES_URL}&location__ids=${ids.join(',')}`
   const response = await fetch(launchesUrl, { headers: { Accept: 'application/json' } })
   if (!response.ok) throw new Error(`Launch data service returned ${response.status}. Please try again shortly.`)
