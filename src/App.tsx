@@ -44,6 +44,7 @@ export default function App() {
   const [cached,setCached] = useState(false)
   const [selected,setSelected] = useState<Launch|null>(null)
   const [filter,setFilter] = useState<'all'|'kennedy'|'cape'>('all')
+  const [visibleCount,setVisibleCount] = useState(5)
   const [lastUpdated,setLastUpdated] = useState<Date|null>(null)
   async function load(force = false) {
     force ? setRefreshing(true) : setLoading(true); setError('')
@@ -56,6 +57,8 @@ export default function App() {
     const loc = (l.pad?.location?.name ?? '').toLowerCase()
     return filter === 'all' || (filter === 'kennedy' ? loc.includes('kennedy') : loc.includes('cape canaveral'))
   }),[launches,filter])
+  useEffect(() => { setVisibleCount(5) }, [filter])
+  const visibleLaunches = filtered.slice(0, visibleCount)
   const next = filtered.find(l => new Date(l.net ?? l.window_start ?? 0).getTime() > now) ?? filtered[0]
   const live = launches.filter(l => l.webcast_live || l.status?.name?.toLowerCase().includes('live')).length
   const site = next?.pad?.location?.name?.replace(', USA','') ?? 'Awaiting next mission'
@@ -67,8 +70,8 @@ export default function App() {
       <section className="stats"><article><div>UPCOMING MISSIONS <CalendarDays size={16}/></div><b>{loading?'—':String(launches.length).padStart(2,'0')}</b><small>FLORIDA MANIFEST</small></article><article><div>ACTIVE WEBCASTS <Radio size={16}/></div><b>{String(live).padStart(2,'0')}</b><small>LIVE BROADCASTS</small></article><article><div>TRACKED LAUNCH SITES <MapPin size={16}/></div><b>02</b><small>KENNEDY + CAPE CANAVERAL</small></article><article><div>DATA CONNECTION <Satellite size={16}/></div><b className="online">{error?'DEGRADED':'ONLINE'}</b><small>{cached?'CACHED DATA':'LAUNCH LIBRARY 2 API'}</small></article></section>
       <section id="schedule" className="schedule"><div className="section-head"><div><div className="eyebrow">FLIGHT MANIFEST</div><h2>UPCOMING LAUNCHES</h2></div><div className="filters">{(['all','kennedy','cape'] as const).map(f=><button key={f} className={filter===f?'chosen':''} onClick={()=>setFilter(f)}>{f==='all'?'ALL SITES':f.toUpperCase()}</button>)}</div></div>
         {error && <div className="error"><AlertTriangle size={17}/><span>{error}</span><button onClick={()=>void load(true)}>RETRY</button></div>}
-        <div className="launch-list">{loading&&!launches.length?<div className="empty"><Clock3 size={22}/><b>ESTABLISHING DATA LINK</b><span>Requesting Florida launch manifest...</span></div>:filtered.length?filtered.map(l=><LaunchCard key={l.id} launch={l} now={now} onSelect={setSelected}/>):<div className="empty"><Rocket size={22}/><b>NO MISSIONS IN THIS VIEW</b><span>No upcoming launches are currently listed for this selection.</span></div>}</div>
-        <div className="list-footer"><span>SHOWING {filtered.length} OF {launches.length} FLORIDA MISSIONS</span><span>{lastUpdated? `LAST SYNC ${lastUpdated.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}${cached?' · CACHE':''}`:'AWAITING FIRST SYNC'}</span></div>
+        <div className="launch-list">{loading&&!launches.length?<div className="empty"><Clock3 size={22}/><b>ESTABLISHING DATA LINK</b><span>Requesting Florida launch manifest...</span></div>:filtered.length?visibleLaunches.map(l=><LaunchCard key={l.id} launch={l} now={now} onSelect={setSelected}/>):<div className="empty"><Rocket size={22}/><b>NO MISSIONS IN THIS VIEW</b><span>No upcoming launches are currently listed for this selection.</span></div>}</div>
+        <div className="list-footer"><span>SHOWING {Math.min(visibleCount,filtered.length)} OF {filtered.length} MATCHING MISSIONS</span><span>{lastUpdated? `LAST SYNC ${lastUpdated.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}${cached?' · CACHE':''}`:'AWAITING FIRST SYNC'}</span></div>{filtered.length>visibleCount&&<button className="refresh" style={{margin:"18px auto 0",display:"flex"}} onClick={()=>setVisibleCount(n=>Math.min(n+20,filtered.length))}>SHOW NEXT {Math.min(20,filtered.length-visibleCount)} LAUNCHES <ChevronRight size={14}/></button>}
       </section>
       <section id="sites" className="sites"><div className="eyebrow">SPACE COAST INFRASTRUCTURE</div><h2>TRACKED LAUNCH SITES</h2><div className="site-grid"><article><span>SITE 01 / KSC</span><div className="site-art"><div className="tower"/></div><div><b>Kennedy Space Center</b><p>NASA's historic launch complex · Merritt Island, FL</p><small>28.57° N / 80.65° W</small></div></article><article><span>SITE 02 / CCSFS</span><div className="site-art cape"><div className="tower"/></div><div><b>Cape Canaveral SFS</b><p>Commercial and military launch range · Cape Canaveral, FL</p><small>28.49° N / 80.58° W</small></div></article></div></section>
       <footer className="page-footer">© {new Date().getFullYear()} LIFTOFF FLIGHT OPERATIONS <span>DATA PROVIDED BY <a href="https://thespacedevs.com/llapi" target="_blank" rel="noreferrer">THE SPACE DEVS <ExternalLink size={11}/></a></span><span>BUILT FOR THE SPACE COAST ✦</span></footer>
