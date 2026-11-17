@@ -40,6 +40,7 @@ function LaunchCard({ launch, now, onSelect }: { launch: Launch; now: number; on
 export default function App() {
   const now = useNow()
   const [launches,setLaunches] = useState<Launch[]>([])
+  const [availableStates,setAvailableStates] = useState<string[]>([])
   const [loading,setLoading] = useState(true)
   const [refreshing,setRefreshing] = useState(false)
   const [error,setError] = useState('')
@@ -50,12 +51,12 @@ export default function App() {
   const [lastUpdated,setLastUpdated] = useState<Date|null>(null)
   async function load(force = false) {
     force ? setRefreshing(true) : setLoading(true); setError('')
-    try { const result = await getUSLaunches(force); setLaunches(result.launches); setCached(result.cached); setLastUpdated(new Date()) }
+    try { const result = await getUSLaunches(force); setLaunches(result.launches); setAvailableStates(result.stateCodes); setCached(result.cached); setLastUpdated(new Date()) }
     catch (e) { setError(e instanceof Error ? e.message : 'Unable to load launch data.') }
     finally { setLoading(false); setRefreshing(false) }
   }
   useEffect(() => { void load() }, [])
-  const states = useMemo(() => [...new Set(launches.map(stateCode).filter(code => STATE_NAMES[code]))].sort((a,b) => STATE_NAMES[a].localeCompare(STATE_NAMES[b])), [launches])
+  const states = useMemo(() => availableStates.filter(code => STATE_NAMES[code]).sort((a,b) => STATE_NAMES[a].localeCompare(STATE_NAMES[b])), [availableStates])
   const filtered = useMemo(() => launches.filter(launch => stateFilter === 'ALL' || stateCode(launch) === stateFilter), [launches,stateFilter])
   useEffect(() => { setVisibleCount(5) }, [stateFilter])
   const visibleLaunches = filtered.slice(0, visibleCount)
