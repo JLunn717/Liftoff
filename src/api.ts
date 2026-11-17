@@ -28,7 +28,10 @@ export async function getUSLaunches(force = false): Promise<{ launches: Launch[]
   let locations = Array.isArray(locationPayload) ? locationPayload : (locationPayload.results ?? [])
   let nextPage = Array.isArray(locationPayload) ? null : locationPayload.next ?? null
   while (nextPage) {
-    const pageResponse = await fetch(nextPage, { headers: { Accept: 'application/json' } })
+    // The development API can return pagination links pointing back to production.
+    // Keep every location page on the unthrottled development host.
+    const pageUrl = nextPage.replace('https://ll.thespacedevs.com/', 'https://lldev.thespacedevs.com/')
+    const pageResponse = await fetch(pageUrl, { headers: { Accept: 'application/json' } })
     if (!pageResponse.ok) throw new Error(`Launch location service returned ${pageResponse.status}.`)
     const page = await pageResponse.json() as { results?: Array<{ id: number; name?: string }>; next?: string | null }
     locations = locations.concat(page.results ?? [])
