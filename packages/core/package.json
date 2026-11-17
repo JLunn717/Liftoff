@@ -1,0 +1,7 @@
+{
+  "name": "@liftoff/core",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shared launch coverage and domain models for Liftoff."
+}
