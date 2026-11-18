@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.notification-dispatch]
 verify_jwt = false
+
+[functions.test-notification]
+verify_jwt = true
