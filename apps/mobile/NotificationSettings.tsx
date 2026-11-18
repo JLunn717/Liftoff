@@ -37,6 +37,7 @@ const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
   },
 })
 
+supabase.auth.startAutoRefresh()
 AppState.addEventListener('change', (state) => {
   if (state === 'active') supabase.auth.startAutoRefresh()
   else supabase.auth.stopAutoRefresh()
