@@ -11,9 +11,8 @@ import {
   Text,
   View,
 } from 'react-native'
-import { DEFAULT_STATE, STATE_NAMES, TRACKED_STATES } from '../../packages/core/src/coverage'
-import { getUpcomingLaunches } from '../../packages/core/src/launch-service'
-import type { Launch } from '../../packages/core/src/launch'
+import { DEFAULT_STATE, STATE_NAMES, TRACKED_STATES, getUpcomingLaunches } from '@liftoff/core'
+import type { Launch } from '@liftoff/core'
 
 const colors = {
   background: '#07111d',
