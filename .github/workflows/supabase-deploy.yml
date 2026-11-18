@@ -33,6 +33,7 @@ jobs:
             exit 1
           fi
           npx --yes supabase@latest functions deploy sync-launches --remote=uwfzodvfjdstnckroadu --yes
+          npx --yes supabase@latest functions deploy notification-dispatch --remote=uwfzodvfjdstnckroadu --yes
 
       - name: Configure Edge Function secrets
         env:
