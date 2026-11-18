@@ -32,4 +32,21 @@ jobs:
             echo "Missing GitHub Actions secret: SUPABASE_ACCESS_TOKEN"
             exit 1
           fi
-          npx --yes supabase@latest functions deploy sync-launches --remote=uwfzodvfjdstnckroadu --yes
+          npx --yes supabase@latest functions deploy sync-launches --project-ref uwfzodvfjdstnckroadu --yes
+
+      - name: Configure Edge Function secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+        run: |
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SYNC_SECRET; do
+            if [ -z "${!name}" ]; then
+              echo "Missing GitHub Actions secret or value: $name"
+              exit 1
+            fi
+          done
+          printf 'SUPABASE_URL=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\nSYNC_SECRET=%s\n' "$SUPABASE_URL" "$SUPABASE_SERVICE_ROLE_KEY" "$SYNC_SECRET" > /tmp/liftoff-function-secrets.env
+          npx --yes supabase@latest secrets set --project-ref uwfzodvfjdstnckroadu --env-file /tmp/liftoff-function-secrets.env
+          rm -f /tmp/liftoff-function-secrets.env
