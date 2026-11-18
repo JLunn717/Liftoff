@@ -15,6 +15,7 @@ type Launch = {
   name: string
   state_code: string
   net: string | null
+  window_start: string | null
   status_name: string | null
 }
 
@@ -65,13 +66,14 @@ Deno.serve(async (request) => {
 
     const { data: launchesData, error: launchesError } = await supabase
       .from('launches')
-      .select('id, name, state_code, net, status_name')
-      .not('net', 'is', null)
-      .gte('net', nowIso)
+      .select('id, name, state_code, net, window_start, status_name')
       .order('net', { ascending: true })
       .limit(1000)
     if (launchesError) throw launchesError
-    const launches = (launchesData ?? []) as Launch[]
+    const launches = ((launchesData ?? []) as Launch[]).filter((launch) => {
+      const scheduledAt = launch.net ?? launch.window_start
+      return scheduledAt !== null && Date.parse(scheduledAt) >= now.getTime()
+    })
     const launchById = new Map(launches.map((launch) => [launch.id, launch]))
 
     // Cancel reminders that no longer match the current launch time after a delay or reschedule.
@@ -85,7 +87,8 @@ Deno.serve(async (request) => {
     for (const job of pendingReminders ?? []) {
       const launch = launchById.get(job.launch_id)
       const offset = reminderOffsets[job.job_type as keyof typeof reminderOffsets]
-      const expected = launch?.net ? new Date(Date.parse(launch.net) - offset).toISOString() : null
+      const scheduledAt = launch?.net ?? launch?.window_start
+      const expected = scheduledAt ? new Date(Date.parse(scheduledAt) - offset).toISOString() : null
       if (!expected || expected !== job.scheduled_for) {
         await supabase.from('notification_jobs').update({ status: 'cancelled' }).eq('id', job.id)
       }
@@ -94,8 +97,9 @@ Deno.serve(async (request) => {
     const reminderJobs: Array<Record<string, unknown>> = []
     for (const device of devices) {
       for (const launch of launches) {
-        if (!device.states.includes(launch.state_code) || !launch.net) continue
-        const launchTime = Date.parse(launch.net)
+        const scheduledAt = launch.net ?? launch.window_start
+        if (!device.states.includes(launch.state_code) || !scheduledAt) continue
+        const launchTime = Date.parse(scheduledAt)
         const reminders: Array<{ enabled: boolean; type: 'reminder_24h' | 'reminder_1h'; offset: number }> = [
           { enabled: device.alert_24h, type: 'reminder_24h', offset: reminderOffsets.reminder_24h },
           { enabled: device.alert_1h, type: 'reminder_1h', offset: reminderOffsets.reminder_1h },
@@ -172,7 +176,7 @@ Deno.serve(async (request) => {
     const dueLaunchIds = [...new Set(due.map((job) => job.launch_id))]
     const { data: dueLaunchesData, error: dueLaunchesError } = await supabase
       .from('launches')
-      .select('id, name, state_code, net, status_name')
+      .select('id, name, state_code, net, window_start, status_name')
       .in('id', dueLaunchIds)
     if (dueLaunchesError) throw dueLaunchesError
     const dueLaunchById = new Map(((dueLaunchesData ?? []) as Launch[]).map((launch) => [launch.id, launch]))
