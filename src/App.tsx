@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, CalendarDays, ChevronRight, Clock3, ExternalLink, MapPin, Radio, RefreshCw, Rocket, Satellite, Signal, Wifi } from 'lucide-react'
+import { Activity, AlertTriangle, CalendarDays, ChevronRight, Clock3, ExternalLink, MapPin, Radio, RefreshCw, Rocket, Satellite, Search, Signal, Wifi } from 'lucide-react'
 import { getUSLaunches } from './api'
 import type { Launch } from './types'
 import { DEFAULT_STATE, TRACKED_STATES, stateCodeFromLocation } from '../packages/core/src/coverage'
@@ -48,6 +48,7 @@ export default function App() {
   const [cached,setCached] = useState(false)
   const [selected,setSelected] = useState<Launch|null>(null)
   const [stateFilter,setStateFilter] = useState<string>(DEFAULT_STATE)
+  const [searchQuery,setSearchQuery] = useState('')
   const [visibleCount,setVisibleCount] = useState(5)
   const [lastUpdated,setLastUpdated] = useState<Date|null>(null)
   async function load(force = false) {
@@ -58,7 +59,24 @@ export default function App() {
   }
   useEffect(() => { void load() }, [])
   const states = useMemo(() => TRACKED_STATES.filter(code => availableStates.includes(code)), [availableStates])
-  const filtered = useMemo(() => launches.filter(launch => stateFilter === 'ALL' || stateCode(launch) === stateFilter), [launches,stateFilter])
+  const filtered = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    return launches.filter(launch => {
+      const inState = stateFilter === 'ALL' || stateCode(launch) === stateFilter
+      if (!inState) return false
+      if (!query) return true
+      const searchable = [
+        launch.name,
+        launch.mission?.name,
+        launch.rocket?.configuration?.full_name,
+        launch.rocket?.configuration?.name,
+        launch.launch_service_provider?.name,
+        launch.pad?.name,
+        launch.pad?.location?.name,
+      ].filter(Boolean).join(' ').toLowerCase()
+      return searchable.includes(query)
+    })
+  }, [launches,stateFilter,searchQuery])
   useEffect(() => { setVisibleCount(5) }, [stateFilter])
   const visibleLaunches = filtered.slice(0, visibleCount)
   const next = filtered.find(l => new Date(l.net ?? l.window_start ?? 0).getTime() > now) ?? filtered[0]
@@ -70,7 +88,7 @@ export default function App() {
       <section className="heading"><div><div className="eyebrow"><span/> UNITED STATES LAUNCH OPERATIONS CENTER</div><h1>MISSION CONTROL<span>.</span></h1><p>Tracking America's launch activity, state by state.</p></div><button className="refresh" onClick={() => void load(true)} disabled={refreshing}><RefreshCw size={15} className={refreshing?'spin':''}/>{refreshing?'SYNCING':'SYNC DATA'}</button></section>
       <section className="hero"><div className="hero-copy"><div className="kicker"><span className="pulse"/> NEXT SCHEDULED LAUNCH</div><h2>{loading && !next ? 'ACQUIRING FLIGHT DATA...' : next?.name ?? (error?'SIGNAL UNAVAILABLE':'NO UPCOMING MISSIONS')}<span>.</span></h2><p className="mission-name">{next?.mission?.name ?? next?.rocket?.configuration?.full_name ?? 'US launch window'}</p><small>T-MINUS</small><div className="countdown">{next ? countdown(next.net ?? next.window_start,now) : '--:--:--'}</div><div className="hero-meta"><div><small>LAUNCH SITE</small><b><MapPin size={14}/>{site}</b></div><div><small>LAUNCH DATE / TIME</small><b><CalendarDays size={14}/>{dateLabel(next?.net ?? next?.window_start ?? null)}</b></div><div><small>MISSION STATUS</small><b><i className={`dot ${tone(next?.status?.name)}`}/>{next?.status?.name ?? 'Awaiting data'}</b></div></div></div><div className="orbit"><div/><div/><Rocket size={35}/></div><footer><span><Signal size={13}/> LIVE MISSION FEED</span><span>ALL TIMES EASTERN</span></footer></section>
       <section className="stats"><article><div>UPCOMING MISSIONS <CalendarDays size={16}/></div><b>{loading?'—':String(launches.length).padStart(2,'0')}</b><small>US LAUNCH MANIFEST</small></article><article><div>ACTIVE WEBCASTS <Radio size={16}/></div><b>{String(live).padStart(2,'0')}</b><small>LIVE BROADCASTS</small></article><article><div>TRACKED LAUNCH SITES <MapPin size={16}/></div><b>{states.length}</b><small>ACTIVE LAUNCH STATES</small></article><article><div>DATA CONNECTION <Satellite size={16}/></div><b className="online">{error?'DEGRADED':'ONLINE'}</b><small>{cached?'CACHED DATA':'LAUNCH LIBRARY 2 API'}</small></article></section>
-      <section id="schedule" className="schedule"><div className="section-head"><div><div className="eyebrow">NATIONAL FLIGHT MANIFEST</div><h2>UPCOMING LAUNCHES</h2></div><div className="filters"><label htmlFor="state-filter">STATE</label><select id="state-filter" value={stateFilter} onChange={event=>setStateFilter(event.target.value)}><option value="ALL">ALL STATES</option>{states.map(code=><option key={code} value={code}>{STATE_NAMES[code]}</option>)}</select></div></div>
+      <section id="schedule" className="schedule"><div className="section-head"><div><div className="eyebrow">NATIONAL FLIGHT MANIFEST</div><h2>UPCOMING LAUNCHES</h2></div><div className="filters"><label htmlFor="launch-search">SEARCH</label><div className="search-control"><Search size={14}/><input id="launch-search" type="search" value={searchQuery} onChange={event=>setSearchQuery(event.target.value)} placeholder="Mission, rocket, provider..." /></div><label htmlFor="state-filter">STATE</label><select id="state-filter" value={stateFilter} onChange={event=>setStateFilter(event.target.value)}><option value="ALL">ALL STATES</option>{states.map(code=><option key={code} value={code}>{STATE_NAMES[code]}</option>)}</select></div></div>
         {error && <div className="error"><AlertTriangle size={17}/><span>{error}</span><button onClick={()=>void load(true)}>RETRY</button></div>}
         <div className="launch-list">{loading&&!launches.length?<div className="empty"><Clock3 size={22}/><b>ESTABLISHING DATA LINK</b><span>Requesting US launch manifest...</span></div>:filtered.length?visibleLaunches.map(l=><LaunchCard key={l.id} launch={l} now={now} onSelect={setSelected}/>):<div className="empty"><Rocket size={22}/><b>NO MISSIONS IN THIS VIEW</b><span>No upcoming launches are currently listed for this selection.</span></div>}</div>
         <div className="list-footer"><span>SHOWING {Math.min(visibleCount,filtered.length)} OF {filtered.length} {stateFilter==='ALL'?'US':STATE_NAMES[stateFilter].toUpperCase()} MISSIONS</span><span>{lastUpdated? `LAST SYNC ${lastUpdated.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}${cached?' · CACHE':''}`:'AWAITING FIRST SYNC'}</span></div>{filtered.length>visibleCount&&<button className="refresh" style={{margin:"18px auto 0",display:"flex"}} onClick={()=>setVisibleCount(n=>Math.min(n+20,filtered.length))}>SHOW NEXT {Math.min(20,filtered.length-visibleCount)} LAUNCHES <ChevronRight size={14}/></button>}
