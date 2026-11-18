@@ -17,6 +17,7 @@ import { DEFAULT_STATE, STATE_NAMES, TRACKED_STATES, normalizeProviderLaunch } f
 import type { ProviderLaunch } from '@liftoff/core'
 import { SUPABASE_CONFIG } from './supabase.config'
 import type { Launch } from '@liftoff/core'
+import NotificationSettings from './NotificationSettings'
 
 const colors = {
   background: '#07111d',
@@ -306,6 +307,8 @@ export default function App() {
             <Text style={styles.heroFooterLabel}>ALL TIMES LOCAL</Text>
           </View>
         </View>
+
+        <NotificationSettings />
 
         <View style={styles.stats}>
           <View style={styles.statCard}><Text style={styles.statLabel}>UPCOMING MISSIONS</Text><Text style={styles.statValue}>{loading ? '—' : String(launches.length).padStart(2, '0')}</Text><Text style={styles.statFoot}>TRACKED MANIFEST</Text></View>
