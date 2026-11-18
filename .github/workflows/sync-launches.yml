@@ -1,0 +1,36 @@
+name: Sync Liftoff Launch Data
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/sync-launches.yml"
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate configuration
+        env:
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+        run: |
+          test -n "$SUPABASE_URL" || { echo "Missing EXPO_PUBLIC_SUPABASE_URL"; exit 1; }
+          test -n "$SYNC_SECRET" || { echo "Missing SYNC_SECRET"; exit 1; }
+
+      - name: Sync upcoming launches
+        env:
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "x-sync-secret: $SYNC_SECRET" \
+            --header "Content-Type: application/json" \
+            "$SUPABASE_URL/functions/v1/sync-launches"
