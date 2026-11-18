@@ -1,0 +1,36 @@
+name: Dispatch Liftoff Notifications
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/dispatch-notifications.yml"
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate configuration
+        env:
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+        run: |
+          test -n "$SUPABASE_URL" || { echo "Missing EXPO_PUBLIC_SUPABASE_URL"; exit 1; }
+          test -n "$SYNC_SECRET" || { echo "Missing SYNC_SECRET"; exit 1; }
+
+      - name: Process due launch notifications
+        env:
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "x-sync-secret: $SYNC_SECRET" \
+            --header "Content-Type: application/json" \
+            "$SUPABASE_URL/functions/v1/notification-dispatch"
