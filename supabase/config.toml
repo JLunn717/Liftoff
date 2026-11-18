@@ -1,0 +1,4 @@
+project_id = "liftoff"
+
+[functions.sync-launches]
+verify_jwt = false
