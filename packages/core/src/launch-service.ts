@@ -21,7 +21,7 @@ type ProviderMission = {
   agencies?: ProviderAgency[] | null
   payloads?: ProviderPayload[] | null
 }
-type ProviderLaunch = {
+export type ProviderLaunch = {
   id: string
   name?: string
   net?: string | null
@@ -64,7 +64,7 @@ function normalizePayload(payload: ProviderPayload): LaunchPayload {
   }
 }
 
-function normalizeLaunch(item: ProviderLaunch): Launch {
+export function normalizeProviderLaunch(item: ProviderLaunch): Launch {
   const locationName = item.pad?.location?.name ?? ''
   const videos = (item.vid_urls ?? []).filter((entry) => Boolean(entry.url))
   const info = (item.infoURLs ?? []).filter((entry) => Boolean(entry.url))
@@ -126,7 +126,7 @@ export async function getUpcomingLaunches(force = false): Promise<Launch[]> {
   }
 
   const launches = records
-    .map(normalizeLaunch)
+    .map(normalizeProviderLaunch)
     .filter((launch) => launch.stateCode && TRACKED_STATES.includes(launch.stateCode as (typeof TRACKED_STATES)[number]))
     .sort((a, b) => {
       const aTime = new Date(a.net ?? a.windowStart ?? '2999-01-01').getTime()
