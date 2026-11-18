@@ -229,7 +229,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.background} translucent={false} />
+      <StatusBar barStyle="light-content" />
       <ScrollView
         contentContainerStyle={[styles.content, Platform.OS === 'android' && { paddingTop: (StatusBar.currentHeight ?? 0) + 10 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} colors={[colors.accent]} progressBackgroundColor={colors.panel} />}
