@@ -10,7 +10,8 @@
       "bundleIdentifier": "com.jlunn717.liftoff"
     },
     "android": {
-      "package": "com.jlunn717.liftoff"
+      "package": "com.jlunn717.liftoff",
+      "googleServicesFile": "./google-services.json"
     },
     "extra": {
       "eas": {
