@@ -164,6 +164,7 @@ function LaunchRow({ launch, onPress }: { launch: Launch; onPress: () => void })
 export default function App() {
   const [launches, setLaunches] = useState<Launch[]>([])
   const [selectedState, setSelectedState] = useState<string>(DEFAULT_STATE)
+  const [statePickerOpen, setStatePickerOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(5)
   const [selectedMission, setSelectedMission] = useState<Launch | null>(null)
   const [loading, setLoading] = useState(true)
@@ -188,7 +189,7 @@ export default function App() {
   useEffect(() => { void loadLaunches() }, [loadLaunches])
 
   const filtered = useMemo(
-    () => launches.filter((launch) => launch.stateCode === selectedState),
+    () => selectedState === 'ALL' ? launches : launches.filter((launch) => launch.stateCode === selectedState),
     [launches, selectedState],
   )
   const nextLaunch = useMemo(() => {
@@ -207,7 +208,10 @@ export default function App() {
   const chooseState = (code: string) => {
     setSelectedState(code)
     setVisibleCount(5)
+    setStatePickerOpen(false)
   }
+  const selectedStateName = selectedState === 'ALL' ? 'All tracked states' : STATE_NAMES[selectedState];
+  const selectedStateCount = selectedState === 'ALL' ? launches.length : stateCounts[selectedState as keyof typeof stateCounts] ?? 0;
   const refresh = () => { setRefreshing(true); void loadLaunches(true) }
 
   return (
@@ -293,16 +297,18 @@ export default function App() {
           <Text style={styles.sectionCount}>{filtered.length} MISSIONS</Text>
         </View>
         <View style={styles.filters}>
-          {TRACKED_STATES.map((code) => (
-            <Pressable key={code} onPress={() => chooseState(code)} style={[styles.filterChip, selectedState === code && styles.filterChipActive]}>
-              <Text style={[styles.filterText, selectedState === code && styles.filterTextActive]}>{code}</Text>
-              <Text style={[styles.filterCount, selectedState === code && styles.filterTextActive]}>{stateCounts[code] ?? 0}</Text>
-            </Pressable>
-          ))}
+          <Text style={styles.filterCaption}>SHOW LAUNCHES IN</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Filter launches: ${selectedStateName}`} onPress={() => setStatePickerOpen(true)} style={styles.stateSelect}>
+            <View style={styles.stateSelectCopy}>
+              <Text style={styles.stateSelectValue}>{selectedStateName}</Text>
+              <Text style={styles.stateSelectCount}>{selectedStateCount} {selectedStateCount === 1 ? 'launch' : 'launches'}</Text>
+            </View>
+            <Text style={styles.stateSelectChevron}>⌄</Text>
+          </Pressable>
         </View>
 
         {error ? <View style={styles.errorCard}><Text style={styles.errorTitle}>DATA LINK INTERRUPTED</Text><Text style={styles.errorBody}>{error}</Text><Pressable onPress={() => { setLoading(true); void loadLaunches(true) }}><Text style={styles.retryText}>RETRY CONNECTION ↗</Text></Pressable></View> : null}
-        {!loading && !error && visibleLaunches.length === 0 ? <View style={styles.empty}><Text style={styles.emptyTitle}>NO MISSIONS IN THIS VIEW</Text><Text style={styles.emptyBody}>No upcoming launches are currently listed for {STATE_NAMES[selectedState]}.</Text></View> : null}
+        {!loading && !error && visibleLaunches.length === 0 ? <View style={styles.empty}><Text style={styles.emptyTitle}>NO MISSIONS IN THIS VIEW</Text><Text style={styles.emptyBody}>No upcoming launches are currently listed for {selectedStateName}.</Text></View> : null}
         {visibleLaunches.map((launch) => <LaunchRow key={launch.id} launch={launch} onPress={() => setSelectedMission(launch)} />)}
         {filtered.length > visibleCount ? (
           <Pressable onPress={() => setVisibleCount((count) => count + 20)} style={styles.loadMore}>
@@ -317,6 +323,29 @@ export default function App() {
         </View>
       </ScrollView>
       {selectedMission ? <MissionDossier launch={selectedMission} onClose={() => setSelectedMission(null)} /> : null}
+      <Modal visible={statePickerOpen} transparent animationType="fade" onRequestClose={() => setStatePickerOpen(false)}>
+        <Pressable style={styles.pickerBackdrop} onPress={() => setStatePickerOpen(false)}>
+          <Pressable style={styles.pickerPanel} onPress={() => undefined}>
+            <View style={styles.pickerHeading}>
+              <Text style={styles.pickerTitle}>SELECT REGION</Text>
+              <Pressable onPress={() => setStatePickerOpen(false)} hitSlop={12}><Text style={styles.pickerClose}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.pickerSubtitle}>Choose which launch locations appear in your feed.</Text>
+            <Pressable onPress={() => chooseState('ALL')} style={styles.pickerOption}>
+              <View><Text style={[styles.pickerOptionName, selectedState === 'ALL' && styles.pickerOptionActive]}>All tracked states</Text><Text style={styles.pickerOptionSub}>Florida, California, Virginia & Texas</Text></View>
+              <Text style={styles.pickerOptionCount}>{launches.length}</Text>
+              {selectedState === 'ALL' ? <Text style={styles.pickerCheck}>✓</Text> : null}
+            </Pressable>
+            {TRACKED_STATES.map((code) => (
+              <Pressable key={code} onPress={() => chooseState(code)} style={styles.pickerOption}>
+                <View><Text style={[styles.pickerOptionName, selectedState === code && styles.pickerOptionActive]}>{STATE_NAMES[code]}</Text><Text style={styles.pickerOptionSub}>{code} launch region</Text></View>
+                <Text style={styles.pickerOptionCount}>{stateCounts[code] ?? 0}</Text>
+                {selectedState === code ? <Text style={styles.pickerCheck}>✓</Text> : null}
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -372,12 +401,25 @@ const styles = StyleSheet.create({
   sectionEyebrow: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1.1, marginBottom: 4 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', letterSpacing: 1 },
   sectionCount: { color: colors.dim, fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
-  filters: { flexDirection: 'row', gap: 7, marginBottom: 12 },
-  filterChip: { flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: colors.border, borderRadius: 9, paddingVertical: 10, backgroundColor: colors.panel },
-  filterChipActive: { borderColor: colors.accent, backgroundColor: '#1b2631' },
-  filterText: { color: colors.muted, fontSize: 11, fontWeight: '900' },
-  filterTextActive: { color: colors.accent },
-  filterCount: { color: colors.dim, fontSize: 10, fontWeight: '700' },
+  filters: { marginBottom: 14 },
+  filterCaption: { color: colors.dim, fontSize: 9, fontWeight: '900', letterSpacing: 1, marginBottom: 7 },
+  stateSelect: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: colors.panel },
+  stateSelectCopy: { gap: 3 },
+  stateSelectValue: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  stateSelectCount: { color: colors.muted, fontSize: 10, fontWeight: '600' },
+  stateSelectChevron: { color: colors.accent, fontSize: 24, fontWeight: '700', marginTop: -5 },
+  pickerBackdrop: { flex: 1, justifyContent: 'center', padding: 22, backgroundColor: 'rgba(0,0,0,0.72)' },
+  pickerPanel: { backgroundColor: colors.panelRaised, borderColor: colors.border, borderWidth: 1, borderRadius: 16, padding: 17 },
+  pickerHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pickerTitle: { color: colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.2 },
+  pickerClose: { color: colors.muted, fontSize: 18, padding: 4 },
+  pickerSubtitle: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 7, marginBottom: 10 },
+  pickerOption: { minHeight: 56, flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border, paddingVertical: 9, gap: 10 },
+  pickerOptionName: { color: colors.text, fontSize: 13, fontWeight: '800' },
+  pickerOptionActive: { color: colors.accent },
+  pickerOptionSub: { color: colors.dim, fontSize: 10, marginTop: 3 },
+  pickerOptionCount: { color: colors.muted, fontSize: 12, fontWeight: '800', marginLeft: 'auto' },
+  pickerCheck: { color: colors.accent, fontSize: 16, fontWeight: '900' },
   launchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.panel, borderColor: colors.border, borderWidth: 1, borderRadius: 12, padding: 13, marginBottom: 8 },
   dateBlock: { width: 38, alignItems: 'center', borderRightWidth: 1, borderRightColor: colors.border, marginRight: 10, paddingRight: 8 },
   dateMonth: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
