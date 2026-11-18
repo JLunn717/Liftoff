@@ -162,6 +162,37 @@ Deno.serve(async (request) => {
       if (error) throw error
     }
 
+    // If a user re-enables an alert before its scheduled time, restore the
+    // matching cancelled job instead of leaving the unique-key conflict dormant.
+    const desiredJobs = [...reminderJobs, ...changeJobs]
+    if (desiredJobs.length) {
+      const desiredKeys = new Set(desiredJobs.map((job) =>
+        `${job.device_id}|${job.launch_id}|${job.job_type}|${Date.parse(String(job.scheduled_for))}`
+      ))
+      const deviceIds = [...new Set(desiredJobs.map((job) => String(job.device_id)))]
+      const launchIds = [...new Set(desiredJobs.map((job) => String(job.launch_id)))]
+      const { data: cancelledJobs, error: cancelledError } = await supabase
+        .from('notification_jobs')
+        .select('id, device_id, launch_id, job_type, scheduled_for')
+        .eq('status', 'cancelled')
+        .in('device_id', deviceIds)
+        .in('launch_id', launchIds)
+        .limit(5000)
+      if (cancelledError) throw cancelledError
+      for (const job of cancelledJobs ?? []) {
+        const key = `${job.device_id}|${job.launch_id}|${job.job_type}|${Date.parse(job.scheduled_for)}`
+        if (desiredKeys.has(key)) {
+          const { error } = await supabase.from('notification_jobs').update({
+            status: 'pending',
+            sent_at: null,
+            attempt_count: 0,
+            last_error: null,
+          }).eq('id', job.id)
+          if (error) throw error
+        }
+      }
+    }
+
     const { data: dueData, error: dueError } = await supabase
       .from('notification_jobs')
       .select('id, device_id, launch_id, job_type, scheduled_for')
