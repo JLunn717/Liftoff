@@ -13,7 +13,9 @@ import {
   Text,
   View,
 } from 'react-native'
-import { DEFAULT_STATE, STATE_NAMES, TRACKED_STATES, getUpcomingLaunches } from '@liftoff/core'
+import { DEFAULT_STATE, STATE_NAMES, TRACKED_STATES, normalizeProviderLaunch } from '@liftoff/core'
+import type { ProviderLaunch } from '@liftoff/core'
+import { SUPABASE_CONFIG } from './supabase.config'
 import type { Launch } from '@liftoff/core'
 
 const colors = {
@@ -172,10 +174,29 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
-  const loadLaunches = useCallback(async (force = false) => {
+  const loadLaunches = useCallback(async (_force = false) => {
     setError(null)
     try {
-      const data = await getUpcomingLaunches(force)
+      if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
+        throw new Error('Liftoff database connection is not configured yet.')
+      }
+      const response = await fetch(
+        `${SUPABASE_CONFIG.url}/rest/v1/launches?select=raw_data&order=net.asc.nullslast`,
+        {
+          headers: {
+            apikey: SUPABASE_CONFIG.anonKey,
+            Authorization: `Bearer ${SUPABASE_CONFIG.anonKey}`,
+            Accept: 'application/json',
+          },
+        },
+      )
+      if (!response.ok) {
+        throw new Error(`Liftoff database returned ${response.status}. Please try again shortly.`)
+      }
+      const rows = await response.json() as Array<{ raw_data: ProviderLaunch }>
+      const data = rows
+        .map((row) => normalizeProviderLaunch(row.raw_data))
+        .sort((a, b) => new Date(a.net ?? a.windowStart ?? '2999-01-01').getTime() - new Date(b.net ?? b.windowStart ?? '2999-01-01').getTime())
       setLaunches(data)
       setLastUpdated(new Date())
     } catch (err) {
