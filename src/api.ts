@@ -38,3 +38,24 @@ export async function getUSLaunches(force = false): Promise<{ launches: Launch[]
   try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), launches, stateCodes: [...TRACKED_STATES] } satisfies CacheRecord)) } catch { /* Storage may be unavailable. */ }
   return { launches, stateCodes: [...TRACKED_STATES], cached: false }
 }
+
+export type LaunchHistoryEvent = {
+  id: string
+  event_type: 'first_seen' | 'schedule_changed' | 'status_changed'
+  previous_net: string | null
+  current_net: string | null
+  previous_status: string | null
+  current_status: string | null
+  detected_at: string
+  details: Record<string, unknown>
+}
+
+export async function getLaunchHistory(launchId: string): Promise<LaunchHistoryEvent[]> {
+  const endpoint = 'https://uwfzodvfjdstnckroadu.supabase.co/functions/v1/public-launch-history'
+  const response = await fetch(`${endpoint}?launch_id=${encodeURIComponent(launchId)}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (!response.ok) throw new Error('Mission history is temporarily unavailable.')
+  const payload = await response.json() as { events?: LaunchHistoryEvent[] }
+  return Array.isArray(payload.events) ? payload.events : []
+}
