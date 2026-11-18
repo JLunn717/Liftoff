@@ -31,4 +31,4 @@ jobs:
             echo "Missing GitHub Actions secret: SUPABASE_ACCESS_TOKEN"
             exit 1
           fi
-          npx --yes supabase@latest functions deploy sync-launches --project-ref 0712b14f-4ee6-4583-822b-fb1610f272b2
+          npx --yes supabase@latest functions deploy sync-launches --remote=uwfzodvfjdstnckroadu --yes
