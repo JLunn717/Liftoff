@@ -2,6 +2,15 @@ name: Liftoff Android Preview
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/mobile/**"
+      - "packages/core/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/mobile-preview.yml"
 
 permissions:
   contents: read
