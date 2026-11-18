@@ -18,6 +18,7 @@ import type { ProviderLaunch } from '@liftoff/core'
 import { SUPABASE_CONFIG } from './supabase.config'
 import type { Launch } from '@liftoff/core'
 import NotificationSettings from './NotificationSettings'
+import * as Notifications from 'expo-notifications'
 
 const colors = {
   background: '#07111d',
@@ -174,6 +175,7 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [pendingNotificationLaunchId, setPendingNotificationLaunchId] = useState<string | null>(null)
 
   const loadLaunches = useCallback(async (_force = false) => {
     setError(null)
@@ -209,6 +211,27 @@ export default function App() {
   }, [])
 
   useEffect(() => { void loadLaunches() }, [loadLaunches])
+
+  useEffect(() => {
+    const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+      const launchId = response.notification.request.content.data?.launchId
+      if (typeof launchId === 'string') setPendingNotificationLaunchId(launchId)
+    }
+    const subscription = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse)
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) handleNotificationResponse(response)
+    })
+    return () => subscription.remove()
+  }, [])
+
+  useEffect(() => {
+    if (!pendingNotificationLaunchId) return
+    const launch = launches.find((item) => item.id === pendingNotificationLaunchId)
+    if (launch) {
+      setSelectedMission(launch)
+      setPendingNotificationLaunchId(null)
+    }
+  }, [launches, pendingNotificationLaunchId])
 
   const filtered = useMemo(
     () => selectedState === 'ALL' ? launches : launches.filter((launch) => launch.stateCode === selectedState),
