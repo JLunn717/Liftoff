@@ -11,8 +11,7 @@
       "bundleIdentifier": "com.jlunn717.liftoff"
     },
     "android": {
-      "package": "com.jlunn717.liftoff",
-      "edgeToEdgeEnabled": true
+      "package": "com.jlunn717.liftoff"
     },
     "extra": {
       "eas": {
