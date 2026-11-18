@@ -147,7 +147,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="light-content" />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
