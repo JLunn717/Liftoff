@@ -35,6 +35,7 @@ jobs:
           npx --yes supabase@latest functions deploy sync-launches --remote=uwfzodvfjdstnckroadu --yes
           npx --yes supabase@latest functions deploy notification-dispatch --remote=uwfzodvfjdstnckroadu --yes
           npx --yes supabase@latest functions deploy test-notification --remote=uwfzodvfjdstnckroadu --yes
+          npx --yes supabase@latest functions deploy public-launch-history --remote=uwfzodvfjdstnckroadu --no-verify-jwt --yes
 
       - name: Configure Edge Function secrets
         env:
