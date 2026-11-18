@@ -59,6 +59,7 @@ Deno.serve(async (request) => {
       .eq('active', true)
     if (devicesError) throw devicesError
     const devices = (devicesData ?? []) as Device[]
+    const activeDeviceById = new Map(devices.map((device) => [device.id, device]))
 
     if (!devices.length) {
       return Response.json({ ok: true, devices: 0, scheduled: 0, sent: 0, message: 'No active notification devices.' })
@@ -79,17 +80,19 @@ Deno.serve(async (request) => {
     // Cancel reminders that no longer match the current launch time after a delay or reschedule.
     const { data: pendingReminders, error: pendingError } = await supabase
       .from('notification_jobs')
-      .select('id, launch_id, job_type, scheduled_for')
+      .select('id, device_id, launch_id, job_type, scheduled_for')
       .eq('status', 'pending')
       .in('job_type', ['reminder_24h', 'reminder_1h'])
       .limit(5000)
     if (pendingError) throw pendingError
     for (const job of pendingReminders ?? []) {
       const launch = launchById.get(job.launch_id)
+      const device = activeDeviceById.get(job.device_id)
       const offset = reminderOffsets[job.job_type as keyof typeof reminderOffsets]
+      const enabled = job.job_type === 'reminder_24h' ? device?.alert_24h : device?.alert_1h
       const scheduledAt = launch?.net ?? launch?.window_start
       const expected = scheduledAt ? new Date(Date.parse(scheduledAt) - offset).toISOString() : null
-      if (!expected || expected !== job.scheduled_for) {
+      if (!expected || !device || !device.states.includes(launch?.state_code ?? '') || !enabled || expected !== job.scheduled_for) {
         await supabase.from('notification_jobs').update({ status: 'cancelled' }).eq('id', job.id)
       }
     }
@@ -172,7 +175,7 @@ Deno.serve(async (request) => {
       return Response.json({ ok: true, devices: devices.length, scheduled: reminderJobs.length + changeJobs.length, sent: 0 })
     }
 
-    const deviceById = new Map(devices.map((device) => [device.id, device]))
+    const deviceById = activeDeviceById
     const dueLaunchIds = [...new Set(due.map((job) => job.launch_id))]
     const { data: dueLaunchesData, error: dueLaunchesError } = await supabase
       .from('launches')
@@ -181,10 +184,19 @@ Deno.serve(async (request) => {
     if (dueLaunchesError) throw dueLaunchesError
     const dueLaunchById = new Map(((dueLaunchesData ?? []) as Launch[]).map((launch) => [launch.id, launch]))
 
-    const messages = due.flatMap((job) => {
+    const messages: Array<{ job: Job; device: Device; launch: Launch; payload: Record<string, unknown> }> = []
+    for (const job of due) {
       const device = deviceById.get(job.device_id)
       const launch = dueLaunchById.get(job.launch_id)
-      if (!device || !launch) return []
+      const preferenceEnabled = job.job_type === 'reminder_24h'
+        ? device?.alert_24h
+        : job.job_type === 'reminder_1h'
+          ? device?.alert_1h
+          : device?.alert_schedule_changes
+      if (!device || !launch || !device.states.includes(launch.state_code) || !preferenceEnabled) {
+        await supabase.from('notification_jobs').update({ status: 'cancelled' }).eq('id', job.id)
+        continue
+      }
       const title = job.job_type === 'reminder_24h'
         ? 'Launch in about 24 hours'
         : job.job_type === 'reminder_1h'
@@ -199,7 +211,7 @@ Deno.serve(async (request) => {
           : job.job_type === 'schedule_changed'
             ? `${launch.name} has a new launch time. Open Liftoff for the latest countdown.`
             : `${launch.name}: ${launch.status_name ?? 'mission status updated'}. Open Liftoff for details.`
-      return [{ job, device, launch, payload: {
+      messages.push({ job, device, launch, payload: {
         to: device.expo_push_token,
         title,
         body,
@@ -207,8 +219,8 @@ Deno.serve(async (request) => {
         priority: 'high',
         channelId: 'launch-alerts',
         data: { launchId: launch.id, stateCode: launch.state_code, screen: 'mission' },
-      } }]
-    })
+      } })
+    }
 
     let sent = 0
     for (let index = 0; index < messages.length; index += 100) {
