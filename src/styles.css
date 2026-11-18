@@ -43,3 +43,5 @@
     width:calc(100% + 26px);
   }
 }
+
+@media(max-width:740px){.filters{flex-wrap:wrap;justify-content:flex-start}.search-control{order:2;width:100%;min-width:0}.filters label[for="state-filter"]{margin-left:auto}.filters select{flex:1;min-width:120px}}
