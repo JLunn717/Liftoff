@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, AlertTriangle, CalendarDays, ChevronRight, Clock3, ExternalLink, MapPin, Radio, RefreshCw, Rocket, Satellite, Search, Signal, Wifi } from 'lucide-react'
-import { getUSLaunches } from './api'
+import { getUSLaunches, getLaunchHistory } from './api'
+import type { LaunchHistoryEvent } from './api'
 import type { Launch } from './types'
 import { DEFAULT_STATE, TRACKED_STATES, stateCodeFromLocation } from '../packages/core/src/coverage'
 
@@ -47,6 +48,9 @@ export default function App() {
   const [error,setError] = useState('')
   const [cached,setCached] = useState(false)
   const [selected,setSelected] = useState<Launch|null>(null)
+  const [history,setHistory] = useState<LaunchHistoryEvent[]>([])
+  const [historyLoading,setHistoryLoading] = useState(false)
+  const [historyError,setHistoryError] = useState('')
   const [stateFilter,setStateFilter] = useState<string>(DEFAULT_STATE)
   const [searchQuery,setSearchQuery] = useState('')
   const [visibleCount,setVisibleCount] = useState(5)
@@ -58,6 +62,16 @@ export default function App() {
     finally { setLoading(false); setRefreshing(false) }
   }
   useEffect(() => { void load() }, [])
+  useEffect(() => {
+    if (!selected) { setHistory([]); setHistoryError(''); return }
+    let active = true
+    setHistoryLoading(true); setHistoryError(''); setHistory([])
+    getLaunchHistory(selected.id)
+      .then(events => { if (active) setHistory(events) })
+      .catch(error => { if (active) setHistoryError(error instanceof Error ? error.message : 'History could not be loaded.') })
+      .finally(() => { if (active) setHistoryLoading(false) })
+    return () => { active = false }
+  }, [selected?.id])
   const states = useMemo(() => TRACKED_STATES.filter(code => availableStates.includes(code)), [availableStates])
   const filtered = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -96,6 +110,6 @@ export default function App() {
       <section id="sites" className="sites"><div className="eyebrow">NATIONAL SPACE INFRASTRUCTURE</div><h2>TRACKED LAUNCH STATES</h2><div className="state-grid">{states.map(code=><button key={code} className="state-card" onClick={()=>{setStateFilter(code);document.getElementById("schedule")?.scrollIntoView({behavior:"smooth"})}}><span>{code}</span><b>{STATE_NAMES[code]}</b><small>{launches.filter(launch=>stateCode(launch)===code).length} upcoming missions</small></button>)}</div></section>
       <footer className="page-footer">© {new Date().getFullYear()} LIFTOFF FLIGHT OPERATIONS <span>DATA PROVIDED BY <a href="https://thespacedevs.com/llapi" target="_blank" rel="noreferrer">THE SPACE DEVS <ExternalLink size={11}/></a></span><span>BUILT FOR THE SPACE COAST ✦</span></footer>
     </main>
-    {selected&&<div className="backdrop" onClick={()=>setSelected(null)}><div className="modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setSelected(null)}>×</button><div className="eyebrow">MISSION DOSSIER / {selected.id.slice(0,8).toUpperCase()}</div><h2>{selected.name}</h2><p className="modal-status"><i className={`dot ${tone(selected.status?.name)}`}/>{selected.status?.name??'Status unavailable'}</p><div className="modal-count">{countdown(selected.net??selected.window_start,now)}</div><div className="modal-grid">{[['ROCKET',selected.rocket?.configuration?.full_name??'Not announced'],['PROVIDER',selected.launch_service_provider?.name??'Not announced'],['LAUNCH PAD',selected.pad?.name??'Not announced'],['LAUNCH SITE',selected.pad?.location?.name??'United States'],['MISSION',selected.mission?.name??'Not announced'],['ORBIT',selected.mission?.orbit?.name??'Not announced']].map(([k,v])=><div key={k}><small>{k}</small><b>{v}</b></div>)}</div>{selected.mission?.description&&<p className="description">{selected.mission.description}</p>}<div className="modal-links">{selected.vid_urls?.[0]?.url&&<a href={selected.vid_urls[0].url} target="_blank" rel="noreferrer"><Radio size={14}/> WATCH WEBCAST</a>}{selected.infoURLs?.filter(item=>item.url).map((item,index)=><a key={index} href={item.url} target="_blank" rel="noreferrer">{item.title??'MISSION SOURCE'} <ExternalLink size={13}/></a>)}</div></div></div>}
+    {selected&&<div className="backdrop" onClick={()=>setSelected(null)}><div className="modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setSelected(null)}>×</button><div className="eyebrow">MISSION DOSSIER / {selected.id.slice(0,8).toUpperCase()}</div><h2>{selected.name}</h2><p className="modal-status"><i className={`dot ${tone(selected.status?.name)}`}/>{selected.status?.name??'Status unavailable'}</p><div className="modal-count">{countdown(selected.net??selected.window_start,now)}</div><div className="modal-grid">{[['ROCKET',selected.rocket?.configuration?.full_name??'Not announced'],['PROVIDER',selected.launch_service_provider?.name??'Not announced'],['LAUNCH PAD',selected.pad?.name??'Not announced'],['LAUNCH SITE',selected.pad?.location?.name??'United States'],['MISSION',selected.mission?.name??'Not announced'],['ORBIT',selected.mission?.orbit?.name??'Not announced']].map(([k,v])=><div key={k}><small>{k}</small><b>{v}</b></div>)}</div>{selected.mission?.description&&<p className="description">{selected.mission.description}</p>}<section className="history-panel"><div className="eyebrow">MISSION RECORD</div><h3>FLIGHT HISTORY</h3>{historyLoading?<p className="history-note">Retrieving mission events...</p>:historyError?<p className="history-note">{historyError}</p>:history.length?<div className="history-list">{history.map(event=><article className="history-event" key={event.id}><i className={`history-marker ${event.event_type}`}/><div><b>{event.event_type==='first_seen'?'MISSION ADDED':event.event_type==='schedule_changed'?'SCHEDULE UPDATED':'STATUS UPDATED'}</b><small>{new Date(event.detected_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'})}</small>{event.event_type==='schedule_changed'&&<p>{event.previous_net?dateLabel(event.previous_net):'Previous time not set'} <span>→</span> {event.current_net?dateLabel(event.current_net):'Time not announced'}</p>}{event.event_type==='status_changed'&&<p>{event.previous_status??'Unknown'} <span>→</span> {event.current_status??'Unknown'}</p>}</div></article>)}</div>:<p className="history-note">No recorded changes yet. Liftoff will add events as this mission is tracked and updated.</p>}</section><div className="modal-links">{selected.vid_urls?.[0]?.url&&<a href={selected.vid_urls[0].url} target="_blank" rel="noreferrer"><Radio size={14}/> WATCH WEBCAST</a>}{selected.infoURLs?.filter(item=>item.url).map((item,index)=><a key={index} href={item.url} target="_blank" rel="noreferrer">{item.title??'MISSION SOURCE'} <ExternalLink size={13}/></a>)}</div></div></div>}
   </div>
 }
