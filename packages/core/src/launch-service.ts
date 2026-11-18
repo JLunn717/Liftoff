@@ -1,9 +1,26 @@
 import { TRACKED_STATES, stateCodeFromLocation } from './coverage'
-import type { Launch } from './launch'
+import type { Launch, LaunchPayload } from './launch'
 
 const LAUNCHES_URL =
   'https://lldev.thespacedevs.com/2.3.0/launches/upcoming/?format=json&limit=100&mode=detailed'
 
+type ProviderAgency = { name?: string }
+type ProviderPayload = {
+  name?: string
+  description?: string | null
+  manufacturer?: { name?: string } | string | null
+  orbit?: { name?: string } | null
+  agencies?: ProviderAgency[] | null
+  customer?: string | null
+}
+type ProviderMission = {
+  name?: string
+  description?: string
+  type?: string | null
+  orbit?: { name?: string } | null
+  agencies?: ProviderAgency[] | null
+  payloads?: ProviderPayload[] | null
+}
 type ProviderLaunch = {
   id: string
   name?: string
@@ -11,8 +28,16 @@ type ProviderLaunch = {
   window_start?: string | null
   status?: { name?: string; abbrev?: string; description?: string } | null
   launch_service_provider?: { name?: string } | null
-  rocket?: { configuration?: { name?: string; full_name?: string } } | null
-  mission?: { name?: string; description?: string; orbit?: { name?: string } | null } | null
+  rocket?: {
+    configuration?: {
+      name?: string
+      full_name?: string
+      family?: string
+      variant?: string
+      manufacturer?: { name?: string } | null
+    }
+  } | null
+  mission?: ProviderMission | null
   pad?: { name?: string; location?: { name?: string } | null } | null
   webcast_live?: boolean
   vid_urls?: Array<{ url?: string; title?: string }>
@@ -22,13 +47,28 @@ type ProviderLaunch = {
 
 type ProviderResponse = { results?: ProviderLaunch[] } | ProviderLaunch[]
 
-let memoryCache: { savedAt: number; launches: Launch[] } | null = null
-const CACHE_TTL = 5 * 60 * 1000
+function normalizePayload(payload: ProviderPayload): LaunchPayload {
+  const manufacturer = typeof payload.manufacturer === 'string'
+    ? payload.manufacturer
+    : payload.manufacturer?.name ?? null
+  const customers = [
+    ...(payload.agencies ?? []).map((agency) => agency.name).filter((name): name is string => Boolean(name)),
+    ...(payload.customer ? [payload.customer] : []),
+  ]
+  return {
+    name: payload.name ?? 'Unidentified payload',
+    description: payload.description ?? null,
+    customer: [...new Set(customers)],
+    manufacturer,
+    orbit: payload.orbit?.name ?? null,
+  }
+}
 
 function normalizeLaunch(item: ProviderLaunch): Launch {
   const locationName = item.pad?.location?.name ?? ''
   const videos = (item.vid_urls ?? []).filter((entry) => Boolean(entry.url))
   const info = (item.infoURLs ?? []).filter((entry) => Boolean(entry.url))
+  const configuration = item.rocket?.configuration
   return {
     id: item.id,
     name: item.name ?? 'Unnamed mission',
@@ -42,12 +82,17 @@ function normalizeLaunch(item: ProviderLaunch): Launch {
         }
       : null,
     providerName: item.launch_service_provider?.name ?? null,
-    vehicleName:
-      item.rocket?.configuration?.full_name ??
-      item.rocket?.configuration?.name ??
-      null,
+    vehicleName: configuration?.full_name ?? configuration?.name ?? null,
+    vehicleManufacturer: configuration?.manufacturer?.name ?? null,
+    vehicleFamily: configuration?.family ?? null,
+    vehicleVariant: configuration?.variant ?? null,
     missionName: item.mission?.name ?? null,
     missionDescription: item.mission?.description ?? null,
+    missionType: item.mission?.type ?? null,
+    missionAgencies: (item.mission?.agencies ?? [])
+      .map((agency) => agency.name)
+      .filter((name): name is string => Boolean(name)),
+    payloads: (item.mission?.payloads ?? []).map(normalizePayload),
     orbitName: item.mission?.orbit?.name ?? null,
     launchSiteName: item.pad?.name ?? null,
     launchLocationName: locationName || null,
@@ -92,3 +137,6 @@ export async function getUpcomingLaunches(force = false): Promise<Launch[]> {
   memoryCache = { savedAt: Date.now(), launches }
   return launches
 }
+
+let memoryCache: { savedAt: number; launches: Launch[] } | null = null
+const CACHE_TTL = 5 * 60 * 1000
