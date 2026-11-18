@@ -2,10 +2,6 @@ name: Dispatch Liftoff Notifications
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/dispatch-notifications.yml"
   schedule:
     - cron: "*/5 * * * *"
 
