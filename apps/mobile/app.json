@@ -13,6 +13,11 @@
     "android": {
       "package": "com.jlunn717.liftoff",
       "edgeToEdgeEnabled": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0712b14f-4ee6-4583-822b-fb1610f272b2"
+      }
     }
   }
 }
