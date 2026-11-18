@@ -168,6 +168,22 @@ export default function NotificationSettings() {
     }
   }
 
+  const sendTestAlert = async () => {
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('test-notification')
+      if (invokeError) throw invokeError
+      if (data?.error) throw new Error(data.error)
+      setMessage('TEST ALERT SENT. CHECK YOUR PHONE NOTIFICATION SHADE.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to send a test alert.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const savePreferences = async () => {
     setBusy(true)
     setError('')
@@ -248,6 +264,11 @@ export default function NotificationSettings() {
         {busy ? <ActivityIndicator color="#07111d" /> : <Text style={styles.actionText}>{token ? 'SAVE ALERT PREFERENCES' : 'ENABLE LAUNCH ALERTS  ↗'}</Text>}
       </Pressable>
       {preferences.states.length === 0 ? <Text style={styles.hint}>Select at least one launch region.</Text> : null}
+      {token ? (
+        <Pressable disabled={busy} onPress={sendTestAlert} style={[styles.testAction, busy && styles.disabled]}>
+          <Text style={styles.testActionText}>SEND A TEST NOTIFICATION  ↗</Text>
+        </Pressable>
+      ) : null}
       {message ? <Text style={styles.success}>{message}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Text style={styles.footnote}>You can change these settings any time. Standard push notification and data rates may apply.</Text>
@@ -299,6 +320,8 @@ const styles = StyleSheet.create({
   toggleKnobOn: { alignSelf: 'flex-end', backgroundColor: colors.accent },
   action: { minHeight: 45, borderRadius: 8, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginTop: 15, paddingHorizontal: 12 },
   actionText: { color: '#07111d', fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
+  testAction: { minHeight: 40, borderWidth: 1, borderColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginTop: 8, paddingHorizontal: 12 },
+  testActionText: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
   disabled: { opacity: 0.45 },
   hint: { color: colors.muted, fontSize: 9, textAlign: 'center', marginTop: 8 },
   success: { color: colors.green, fontSize: 9, fontWeight: '800', textAlign: 'center', marginTop: 10, lineHeight: 15 },
