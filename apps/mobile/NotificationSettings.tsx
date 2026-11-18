@@ -8,12 +8,12 @@ import {
   Text,
   View,
 } from 'react-native'
+import 'react-native-url-polyfill/auto'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import * as Device from 'expo-device'
 import * as Notifications from 'expo-notifications'
 import { createClient } from '@supabase/supabase-js'
-import 'react-native-url-polyfill/auto'
 import { SUPABASE_CONFIG } from './supabase.config'
 
 const colors = {
