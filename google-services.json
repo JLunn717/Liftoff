@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "262245098480",
+    "project_id": "liftoff-97ec0",
+    "storage_bucket": "liftoff-97ec0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:262245098480:android:00ac49d0947c63f8883335",
+        "android_client_info": {
+          "package_name": "com.jlunn717.liftoff"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBW31Qu8kmW9yCS63rn97rRjiQJw-WZyes"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
