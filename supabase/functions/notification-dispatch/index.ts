@@ -241,7 +241,7 @@ Deno.serve(async (request) => {
         : job.job_type === 'reminder_1h'
           ? `${launch.name} is scheduled to launch in about an hour.`
           : job.job_type === 'schedule_changed'
-            ? `${launch.name} has a new launch time. Open Liftoff for the latest countdown.`
+            ? `${launch.name} ${launch.net || launch.window_start ? 'has a new launch time' : 'no longer has a confirmed launch time'}. Open Liftoff for the latest status.`
             : `${launch.name}: ${launch.status_name ?? 'mission status updated'}. Open Liftoff for details.`
       messages.push({ job, device, launch, payload: {
         to: device.expo_push_token,
