@@ -15,7 +15,7 @@ Deno.serve(async (request) => {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
   })
-  const accessToken = authorization.replace(/^Bearer\\s+/i, '')
+  const accessToken = authorization.replace(/^Bearer\s+/i, '')
   const { data: userData, error: userError } = await userClient.auth.getUser(accessToken)
   if (userError || !userData.user) return Response.json({ error: 'Sign in to Liftoff before testing alerts.' }, { status: 401 })
 
