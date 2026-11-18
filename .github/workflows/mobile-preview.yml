@@ -34,6 +34,14 @@ jobs:
         working-directory: apps/mobile
         run: npx expo-doctor
 
+      - name: Inject Supabase client configuration
+        working-directory: apps/mobile
+        env:
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          node -e 'const fs = require("node:fs"); const config = { url: process.env.SUPABASE_URL, anonKey: process.env.SUPABASE_ANON_KEY }; if (!config.url || !config.anonKey) throw new Error("Missing Supabase public client configuration."); fs.writeFileSync("supabase.config.ts", `export const SUPABASE_CONFIG = ${JSON.stringify(config)} as const\\n`);'
+
       - name: Build installable Android preview
         working-directory: apps/mobile
         env:
