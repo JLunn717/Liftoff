@@ -1,0 +1,32 @@
+name: Liftoff Android Preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Liftoff
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13
+
+      - name: Install monorepo dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Check Expo project
+        working-directory: apps/mobile
+        run: npx expo-doctor
+
+      - name: Build installable Android preview
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx --yes eas-cli@latest build --platform android --profile preview --non-interactive --no-wait
