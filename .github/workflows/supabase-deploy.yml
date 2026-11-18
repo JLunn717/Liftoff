@@ -7,7 +7,6 @@ on:
     paths:
       - "supabase/functions/**"
       - "supabase/config.toml"
-      - ".github/workflows/supabase-deploy.yml"
 
 permissions:
   contents: read
