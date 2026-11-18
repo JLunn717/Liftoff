@@ -71,11 +71,12 @@ Deno.serve(async (request) => {
       .order('net', { ascending: true })
       .limit(1000)
     if (launchesError) throw launchesError
-    const launches = ((launchesData ?? []) as Launch[]).filter((launch) => {
+    const allLaunches = (launchesData ?? []) as Launch[]
+    const launchById = new Map(allLaunches.map((launch) => [launch.id, launch]))
+    const launches = allLaunches.filter((launch) => {
       const scheduledAt = launch.net ?? launch.window_start
       return scheduledAt !== null && Date.parse(scheduledAt) >= now.getTime()
     })
-    const launchById = new Map(launches.map((launch) => [launch.id, launch]))
 
     // Cancel reminders that no longer match the current launch time after a delay or reschedule.
     const { data: pendingReminders, error: pendingError } = await supabase
