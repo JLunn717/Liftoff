@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.test-notification]
 verify_jwt = true
+
+[functions.public-launch-history]
+verify_jwt = false
