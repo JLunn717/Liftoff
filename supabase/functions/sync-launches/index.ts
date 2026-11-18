@@ -18,6 +18,7 @@ type ProviderLaunch = {
 type ExistingLaunch = {
   id: string
   net: string | null
+  window_start: string | null
   status_name: string | null
   status_abbrev: string | null
 }
@@ -103,7 +104,7 @@ Deno.serve(async (request) => {
     if (ids.length) {
       const { data, error } = await supabase
         .from('launches')
-        .select('id, net, status_name, status_abbrev')
+        .select('id, net, window_start, status_name, status_abbrev')
         .in('id', ids)
       if (error) throw error
       existingById = new Map((data ?? []).map((item) => [item.id, item as ExistingLaunch]))
@@ -123,7 +124,9 @@ Deno.serve(async (request) => {
         continue
       }
 
-      if (!sameInstant(previous.net, launch.net)) {
+      const previousScheduledAt = previous.net ?? previous.window_start
+      const currentScheduledAt = launch.net ?? launch.window_start
+      if (!sameInstant(previousScheduledAt, currentScheduledAt)) {
         history.push({
           launch_id: launch.id,
           event_type: 'schedule_changed',
@@ -132,6 +135,12 @@ Deno.serve(async (request) => {
           previous_status: previous.status_name,
           current_status: launch.status_name,
           source_updated_at: launch.source_updated_at,
+          details: {
+            previous_scheduled_at: previousScheduledAt,
+            current_scheduled_at: currentScheduledAt,
+            previous_time_source: previous.net ? 'net' : 'window_start',
+            current_time_source: launch.net ? 'net' : 'window_start',
+          },
         })
       }
 
